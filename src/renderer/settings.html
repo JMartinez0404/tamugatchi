@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tamugatchi Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #FFF5F9;
+      color: #444;
+      padding: 20px;
+    }
+    h1 {
+      color: #FF6B9D;
+      font-size: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2 {
+      color: #FF6B9D;
+      font-size: 16px;
+      margin: 20px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #FFE0ED;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    input[type="text"], input[type="number"], input[type="password"], input[type="time"] {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid #FFD6E8;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: #FF6B9D;
+    }
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .checkbox-field input { width: auto; }
+    .dir-list {
+      list-style: none;
+      margin: 4px 0;
+    }
+    .dir-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    .dir-list .btn-remove {
+      background: #FFE0ED;
+      border: none;
+      color: #CC3366;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+    }
+    .btn-add {
+      background: #FF6B9D;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .btn-add:hover { background: #FF4D88; }
+    .btn-save {
+      background: #FF6B9D;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 20px;
+      width: 100%;
+    }
+    .btn-save:hover { background: #FF4D88; }
+    .status {
+      text-align: center;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #66CC66;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .status.show { opacity: 1; }
+    .project-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 4px 0;
+    }
+    .project-card {
+      background: white;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-left: 3px solid #FFB6D9;
+    }
+    .project-card.stale {
+      border-left-color: #FFAA44;
+    }
+    .project-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+    }
+    .project-meta {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .project-meta span {
+      margin-right: 10px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: white;
+      margin-left: 6px;
+    }
+    .badge-github { background: #333; }
+    .badge-stale { background: #FFAA44; }
+    .badge-backlog { background: #66AA66; }
+  </style>
+</head>
+<body>
+  <h1>&#127800; Tamugatchi Settings</h1>
+
+  <h2>General</h2>
+  <div class="field">
+    <label>Pet Name</label>
+    <input type="text" id="petName" placeholder="Tamu">
+  </div>
+  <div class="field">
+    <label>Check Interval (minutes)</label>
+    <input type="number" id="checkInterval" min="5" max="120" value="30">
+  </div>
+  <div class="field">
+    <label>Active Hours (start)</label>
+    <input type="number" id="activeStart" min="0" max="23" value="9">
+  </div>
+  <div class="field">
+    <label>Active Hours (end)</label>
+    <input type="number" id="activeEnd" min="0" max="23" value="18">
+  </div>
+
+  <h2>Scan Directories</h2>
+  <ul class="dir-list" id="dirList"></ul>
+  <div class="field" style="display:flex;gap:8px">
+    <input type="text" id="newDir" placeholder="C:\Users\You\Projects">
+    <button class="btn-add" id="btnAddDir">Add</button>
+  </div>
+
+  <h2>Tracked Projects</h2>
+  <div id="projectList" class="project-list"><em style="color:#999;font-size:13px">Loading...</em></div>
+
+  <h2>Ollama</h2>
+  <div class="field">
+    <label>Ollama Host</label>
+    <input type="text" id="ollamaHost" placeholder="http://localhost:11434">
+  </div>
+  <div class="field">
+    <label>Model</label>
+    <input type="text" id="ollamaModel" placeholder="llama3.2">
+  </div>
+
+  <h2>GitHub</h2>
+  <div class="field">
+    <label>Personal Access Token</label>
+    <input type="password" id="githubToken" placeholder="ghp_...">
+  </div>
+
+  <h2>Discord</h2>
+  <div class="field checkbox-field">
+    <input type="checkbox" id="discordEnabled">
+    <label for="discordEnabled" style="margin:0">Enable Discord notifications</label>
+  </div>
+  <div class="field">
+    <label>Bot Token</label>
+    <input type="password" id="discordBotToken" placeholder="Bot token...">
+  </div>
+  <div class="field">
+    <label>Channel ID (leave empty for DM)</label>
+    <input type="text" id="discordChannelId" placeholder="Optional channel ID">
+  </div>
+  <div class="field">
+    <label>Daily Digest Time</label>
+    <input type="time" id="discordDigestTime" value="09:00">
+  </div>
+
+  <button class="btn-save" id="btnSave">Save Settings</button>
+  <div class="status" id="status">Settings saved!</div>
+
+  <script>
+    let scanDirs = [];
+
+    async function loadSettings() {
+      const config = await window.tamugatchi.getConfig();
+
+      document.getElementById('petName').value = config.petName || 'Tamu';
+      document.getElementById('checkInterval').value = config.checkIntervalMinutes || 30;
+      document.getElementById('activeStart').value = config.activeHours?.start ?? 9;
+      document.getElementById('activeEnd').value = config.activeHours?.end ?? 18;
+      document.getElementById('ollamaHost').value = config.ollama?.host || 'http://localhost:11434';
+      document.getElementById('ollamaModel').value = config.ollama?.model || 'llama3.2';
+      document.getElementById('githubToken').value = config.github?.token || '';
+      document.getElementById('discordEnabled').checked = config.discord?.enabled || false;
+      document.getElementById('discordBotToken').value = config.discord?.botToken || '';
+      document.getElementById('discordChannelId').value = config.discord?.channelId || '';
+      document.getElementById('discordDigestTime').value = config.discord?.dailyDigestTime || '09:00';
+
+      scanDirs = config.scanDirectories || [];
+      renderDirs();
+    }
+
+    function renderDirs() {
+      const list = document.getElementById('dirList');
+      list.innerHTML = scanDirs.map((dir, i) =>
+        `<li><span>${dir}</span><button class="btn-remove" onclick="removeDir(${i})">Remove</button></li>`
+      ).join('');
+    }
+
+    function removeDir(index) {
+      scanDirs.splice(index, 1);
+      renderDirs();
+    }
+
+    document.getElementById('btnAddDir').addEventListener('click', () => {
+      const input = document.getElementById('newDir');
+      const dir = input.value.trim();
+      if (dir && !scanDirs.includes(dir)) {
+        scanDirs.push(dir);
+        renderDirs();
+        input.value = '';
+      }
+    });
+
+    document.getElementById('btnSave').addEventListener('click', async () => {
+      await window.tamugatchi.setConfig('petName', document.getElementById('petName').value);
+      await window.tamugatchi.setConfig('checkIntervalMinutes', parseInt(document.getElementById('checkInterval').value));
+      await window.tamugatchi.setConfig('activeHours', {
+        start: parseInt(document.getElementById('activeStart').value),
+        end: parseInt(document.getElementById('activeEnd').value)
+      });
+      await window.tamugatchi.setConfig('scanDirectories', scanDirs);
+      await window.tamugatchi.setConfig('ollama', {
+        host: document.getElementById('ollamaHost').value,
+        model: document.getElementById('ollamaModel').value
+      });
+      await window.tamugatchi.setConfig('github', {
+        token: document.getElementById('githubToken').value
+      });
+      await window.tamugatchi.setConfig('discord', {
+        enabled: document.getElementById('discordEnabled').checked,
+        botToken: document.getElementById('discordBotToken').value,
+        channelId: document.getElementById('discordChannelId').value,
+        dmMode: !document.getElementById('discordChannelId').value,
+        dailyDigestTime: document.getElementById('discordDigestTime').value
+      });
+
+      const status = document.getElementById('status');
+      status.classList.add('show');
+      setTimeout(() => status.classList.remove('show'), 2000);
+    });
+
+    async function loadProjects() {
+      const projects = await window.tamugatchi.getProjects();
+      const list = document.getElementById('projectList');
+
+      if (!projects || projects.length === 0) {
+        list.innerHTML = '<em style="color:#999;font-size:13px">No projects found yet. Add a scan directory and save settings.</em>';
+        return;
+      }
+
+      list.innerHTML = projects.map(p => {
+        const daysSince = p.lastCommitDate
+          ? Math.floor((Date.now() - new Date(p.lastCommitDate)) / (1000 * 60 * 60 * 24))
+          : null;
+        const isStale = daysSince !== null && daysSince > 14;
+
+        let badges = '';
+        if (p.githubRepo) badges += `<span class="badge badge-github">${p.githubRepo}</span>`;
+        if (isStale) badges += '<span class="badge badge-stale">stale</span>';
+        if (p.hasBacklog) badges += '<span class="badge badge-backlog">backlog</span>';
+
+        const lastCommit = daysSince !== null ? `${daysSince}d ago` : 'unknown';
+
+        return `<div class="project-card${isStale ? ' stale' : ''}">
+          <div class="project-name">${p.name}${badges}</div>
+          <div class="project-meta">
+            <span>${p.path}</span>
+          </div>
+          <div class="project-meta">
+            <span>Last commit: ${lastCommit}</span>
+            <span>Issues: ${p.openIssuesCount || 0}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    loadSettings();
+    loadProjects();
+  </script>
+</body>
+</html>

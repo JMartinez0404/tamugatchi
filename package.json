@@ -1,0 +1,31 @@
+{
+  "name": "tamugatchi",
+  "version": "1.0.0",
+  "description": "A kawaii desktop pet that manages your dev projects",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "jest --coverage --forceExit",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "tamagotchi",
+    "desktop-pet",
+    "electron",
+    "project-manager"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.13",
+    "discord.js": "^14.16.0",
+    "electron-store": "^8.2.0",
+    "node-cron": "^3.0.3"
+  }
+}

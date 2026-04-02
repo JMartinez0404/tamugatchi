@@ -1,0 +1,23 @@
+{
+  "petName": "Tamu",
+  "scanDirectories": [],
+  "trackedProjects": [],
+  "checkIntervalMinutes": 30,
+  "activeHours": { "start": 9, "end": 18 },
+  "ollama": {
+    "host": "http://localhost:11434",
+    "model": "llama3.2"
+  },
+  "github": {
+    "token": ""
+  },
+  "discord": {
+    "enabled": false,
+    "botToken": "",
+    "channelId": "",
+    "dmMode": true,
+    "dailyDigestTime": "09:00"
+  },
+  "notificationStyle": "speech-bubble",
+  "petPosition": { "x": 100, "y": 100 }
+}
