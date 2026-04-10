@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld('tamugatchi', {
   dismissSuggestion: (id) => ipcRenderer.invoke('dismiss-suggestion', id),
   openSettings: () => ipcRenderer.invoke('open-settings'),
   getProjects: () => ipcRenderer.invoke('get-projects'),
+  removeProject: (path) => ipcRenderer.invoke('remove-project', path),
+  onConfigChange: (callback) => {
+    ipcRenderer.on('config-changed', (_, key, value) => callback(key, value));
+  },
 
   onPetStateChange: (callback) => {
     ipcRenderer.on('pet-state-change', (_, state) => callback(state));

@@ -150,6 +150,51 @@
     .badge-github { background: #333; }
     .badge-stale { background: #FFAA44; }
     .badge-backlog { background: #66AA66; }
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .color-options {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .color-swatch:hover {
+      transform: scale(1.15);
+    }
+    .color-swatch.selected {
+      border-color: #FF6B9D;
+      box-shadow: 0 0 0 2px white, 0 0 0 4px #FF6B9D;
+    }
+    #petColorCustom {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #FFD6E8;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+      background: none;
+    }
+    .btn-remove-project {
+      background: #FFE0ED;
+      border: none;
+      color: #CC3366;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+    .btn-remove-project:hover { background: #FFB6D9; }
   </style>
 </head>
 <body>
@@ -159,6 +204,18 @@
   <div class="field">
     <label>Pet Name</label>
     <input type="text" id="petName" placeholder="Tamu">
+  </div>
+  <div class="field">
+    <label>Pet Color</label>
+    <div class="color-options">
+      <button class="color-swatch" data-color="#FFB6D9" style="background:#FFB6D9" title="Pink (default)"></button>
+      <button class="color-swatch" data-color="#B6D9FF" style="background:#B6D9FF" title="Blue"></button>
+      <button class="color-swatch" data-color="#B6FFD9" style="background:#B6FFD9" title="Green"></button>
+      <button class="color-swatch" data-color="#FFD9B6" style="background:#FFD9B6" title="Orange"></button>
+      <button class="color-swatch" data-color="#D9B6FF" style="background:#D9B6FF" title="Purple"></button>
+      <button class="color-swatch" data-color="#FFFAB6" style="background:#FFFAB6" title="Yellow"></button>
+      <input type="color" id="petColorCustom" value="#FFB6D9" title="Custom color">
+    </div>
   </div>
   <div class="field">
     <label>Check Interval (minutes)</label>
@@ -222,11 +279,35 @@
 
   <script>
     let scanDirs = [];
+    let selectedColor = '#FFB6D9';
+
+    // Color swatch selection
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        selectedColor = swatch.dataset.color;
+        highlightSwatch(selectedColor);
+        document.getElementById('petColorCustom').value = selectedColor;
+      });
+    });
+
+    document.getElementById('petColorCustom').addEventListener('input', (e) => {
+      selectedColor = e.target.value;
+      highlightSwatch(null); // deselect presets
+    });
+
+    function highlightSwatch(color) {
+      document.querySelectorAll('.color-swatch').forEach(s => {
+        s.classList.toggle('selected', s.dataset.color === color);
+      });
+    }
 
     async function loadSettings() {
       const config = await window.tamugatchi.getConfig();
 
       document.getElementById('petName').value = config.petName || 'Tamu';
+      selectedColor = config.petColor || '#FFB6D9';
+      highlightSwatch(selectedColor);
+      document.getElementById('petColorCustom').value = selectedColor;
       document.getElementById('checkInterval').value = config.checkIntervalMinutes || 30;
       document.getElementById('activeStart').value = config.activeHours?.start ?? 9;
       document.getElementById('activeEnd').value = config.activeHours?.end ?? 18;
@@ -266,6 +347,7 @@
 
     document.getElementById('btnSave').addEventListener('click', async () => {
       await window.tamugatchi.setConfig('petName', document.getElementById('petName').value);
+      await window.tamugatchi.setConfig('petColor', selectedColor);
       await window.tamugatchi.setConfig('checkIntervalMinutes', parseInt(document.getElementById('checkInterval').value));
       await window.tamugatchi.setConfig('activeHours', {
         start: parseInt(document.getElementById('activeStart').value),
@@ -314,8 +396,12 @@
 
         const lastCommit = daysSince !== null ? `${daysSince}d ago` : 'unknown';
 
+        const escapedPath = p.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return `<div class="project-card${isStale ? ' stale' : ''}">
-          <div class="project-name">${p.name}${badges}</div>
+          <div class="project-header">
+            <div class="project-name">${p.name}${badges}</div>
+            <button class="btn-remove-project" onclick="removeProject('${escapedPath}')">Remove</button>
+          </div>
           <div class="project-meta">
             <span>${p.path}</span>
           </div>
@@ -325,6 +411,11 @@
           </div>
         </div>`;
       }).join('');
+    }
+
+    async function removeProject(projectPath) {
+      await window.tamugatchi.removeProject(projectPath);
+      loadProjects();
     }
 
     loadSettings();

@@ -12,18 +12,20 @@ class ProjectScanner {
     const manualProjects = this.store.get('trackedProjects', [])
       .filter(p => p.manuallyAdded);
 
+    const excludedPaths = new Set(this.store.get('excludedProjects', []));
+
     const discovered = [];
     for (const dir of dirs) {
       if (!fs.existsSync(dir)) continue;
       discovered.push(...this._findGitRepos(dir, 2));
     }
 
-    // Merge discovered + manual, dedup by path
+    // Merge discovered + manual, dedup by path, skip excluded
     const allPaths = new Set();
     const projects = [];
 
     for (const proj of [...manualProjects, ...discovered]) {
-      if (!allPaths.has(proj.path)) {
+      if (!allPaths.has(proj.path) && !excludedPaths.has(proj.path)) {
         allPaths.add(proj.path);
         projects.push(proj);
       }

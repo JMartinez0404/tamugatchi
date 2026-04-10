@@ -28,7 +28,10 @@ class OllamaClient {
       });
 
       const text = response.response || response.message?.content || '';
-      return this._parseSuggestions(text, projects);
+      console.log('Ollama raw response (suggestions):', text.slice(0, 500));
+      const parsed = this._parseSuggestions(text, projects);
+      console.log(`Parsed ${parsed.length} suggestions from response`);
+      return parsed;
     } catch (err) {
       console.error('Ollama generation failed:', err.message);
       return [];
@@ -61,14 +64,118 @@ ${projectSummaries}
 Respond with ONLY the JSON lines, no other text.`;
   }
 
+  async generateDailyPlan(project) {
+    const prompt = this._buildDailyPlanPrompt(project);
+
+    try {
+      const response = await this._request('POST', '/api/generate', {
+        model: this.model,
+        prompt,
+        stream: false,
+        options: { temperature: 0.7, num_predict: 1000 }
+      });
+
+      const text = response.response || response.message?.content || '';
+      console.log(`Ollama daily plan raw (${project.name}):`, text.slice(0, 500));
+      const items = this._parsePlanItems(text, project);
+      console.log(`Parsed ${items.length} plan items for ${project.name}`);
+      return items;
+    } catch (err) {
+      console.error(`Ollama daily plan failed for ${project.name}:`, err.message);
+      return [];
+    }
+  }
+
+  _buildDailyPlanPrompt(project) {
+    const daysSinceCommit = project.lastCommitDate
+      ? Math.floor((Date.now() - new Date(project.lastCommitDate)) / (1000 * 60 * 60 * 24))
+      : 'unknown';
+
+    const backlog = project.backlogItems?.length
+      ? `Current backlog:\n${project.backlogItems.map(b => `  - ${b}`).join('\n')}`
+      : 'No backlog file found.';
+
+    const issues = project.openIssues?.length
+      ? `Open GitHub issues:\n${project.openIssues.map(i => `  - #${i.number}: ${i.title}`).join('\n')}`
+      : `Open issues count: ${project.openIssuesCount || 0}`;
+
+    const recentCommits = project.recentCommits?.length
+      ? `Recent commits:\n${project.recentCommits.map(c => `  - ${c}`).join('\n')}`
+      : '';
+
+    return `You are a senior software architect doing a daily review of a project.
+Analyze this project and suggest up to 3 actionable improvements. Think about:
+- New features that would add value
+- Potential bugs or issues to investigate
+- Performance optimizations or code quality improvements
+- Missing tests, documentation, or security concerns
+
+Project: ${project.name}
+Path: ${project.path}
+Last commit: ${daysSinceCommit} days ago
+${issues}
+${backlog}
+${recentCommits}
+
+For EACH suggestion, output EXACTLY this JSON on its own line:
+{"category": "feature"|"bugfix"|"optimization", "title": "short title", "description": "detailed description of what to do and why", "priority": "high"|"medium"|"low"}
+
+Respond with ONLY the JSON lines, no other text.`;
+  }
+
+  _parsePlanItems(text, project) {
+    const items = [];
+    if (!text || typeof text !== 'string') return items;
+    const jsonObjects = this._extractJsonObjects(text);
+
+    for (const jsonStr of jsonObjects) {
+      try {
+        const parsed = JSON.parse(jsonStr);
+        if (parsed.category && parsed.title) {
+          const categoryLabel = {
+            feature: 'Feature',
+            bugfix: 'Bug Fix',
+            optimization: 'Optimization'
+          };
+
+          const priorityEmoji = {
+            high: '(!)',
+            medium: '(?)',
+            low: '(.)'
+          };
+
+          items.push({
+            id: `plan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            type: 'create-issue',
+            projectName: project.name,
+            title: `[${categoryLabel[parsed.category] || parsed.category}] ${parsed.title}`,
+            description: `${priorityEmoji[parsed.priority] || ''} Priority: ${parsed.priority || 'medium'}\n\n${parsed.description || ''}`,
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            payload: {
+              githubRepo: project.githubRepo,
+              category: parsed.category,
+              priority: parsed.priority || 'medium',
+              fromDailyPlan: true
+            }
+          });
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    return items;
+  }
+
   _parseSuggestions(text, projects) {
     const suggestions = [];
     if (!text || typeof text !== 'string') return suggestions;
-    const lines = text.split('\n').filter(l => l.trim().startsWith('{'));
+    const jsonObjects = this._extractJsonObjects(text);
 
-    for (const line of lines) {
+    for (const jsonStr of jsonObjects) {
       try {
-        const parsed = JSON.parse(line.trim());
+        const parsed = JSON.parse(jsonStr);
         if (parsed.type && parsed.project && parsed.title) {
           // Validate project name matches a known project
           const matchedProject = projects.find(p =>
@@ -92,6 +199,37 @@ Respond with ONLY the JSON lines, no other text.`;
     }
 
     return suggestions;
+  }
+
+  _extractJsonObjects(text) {
+    const objects = [];
+    // Strip markdown code fences
+    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '');
+
+    // Find all { ... } blocks by tracking brace depth
+    let depth = 0;
+    let start = -1;
+
+    for (let i = 0; i < cleaned.length; i++) {
+      if (cleaned[i] === '{') {
+        if (depth === 0) start = i;
+        depth++;
+      } else if (cleaned[i] === '}') {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          const candidate = cleaned.slice(start, i + 1);
+          try {
+            JSON.parse(candidate);
+            objects.push(candidate);
+          } catch {
+            // Not valid JSON, skip
+          }
+          start = -1;
+        }
+      }
+    }
+
+    return objects;
   }
 
   _request(method, path, body) {

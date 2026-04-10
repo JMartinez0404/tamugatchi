@@ -123,7 +123,8 @@ class DiscordBot {
   }
 
   async _handleReaction(reaction, user) {
-    if (user.bot) return;
+    // Ignore reactions from bots and from ourselves
+    if (user.bot || user.id === this.client.user.id) return;
 
     const suggestionId = this.suggestionMessages.get(reaction.message.id);
     if (!suggestionId) return;

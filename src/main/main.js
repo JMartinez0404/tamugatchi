@@ -102,6 +102,10 @@ async function initServices() {
 ipcMain.handle('get-config', () => store.store);
 ipcMain.handle('set-config', (_, key, value) => {
   store.set(key, value);
+  // Broadcast to pet window so it can react live
+  if (petWindow && !petWindow.isDestroyed()) {
+    petWindow.webContents.send('config-changed', key, value);
+  }
   return true;
 });
 
@@ -122,6 +126,21 @@ ipcMain.handle('dismiss-suggestion', (_, suggestionId) => {
 ipcMain.handle('open-settings', () => createSettingsWindow());
 
 ipcMain.handle('get-projects', () => store.get('trackedProjects', []));
+
+ipcMain.handle('remove-project', (_, projectPath) => {
+  const projects = store.get('trackedProjects', []);
+  const updated = projects.filter(p => p.path !== projectPath);
+  store.set('trackedProjects', updated);
+
+  // Add to excluded list so scanner doesn't re-discover it
+  const excluded = store.get('excludedProjects', []);
+  if (!excluded.includes(projectPath)) {
+    excluded.push(projectPath);
+    store.set('excludedProjects', excluded);
+  }
+
+  return updated;
+});
 
 app.whenReady().then(async () => {
   createPetWindow();
